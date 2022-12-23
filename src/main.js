@@ -5,7 +5,7 @@ const util = require("util");
 const fs = require("fs");
 const crypto = require("crypto");
 const axios = require("axios");
-const blurhash = require('blurhash');
+const blurhash = require("blurhash");
 
 const defaults = {
   optimizeAll: true, // optimize all images discovered in img tags
@@ -39,7 +39,7 @@ const defaults = {
   publicDir: "./static/",
 
   placeholder: "trace", // or "blur", or "blurhash",
-  
+
   placeholderSize: 64,
 
   // WebP options [sharp docs](https://sharp.pixelplumbing.com/en/stable/api-output/#webp)
@@ -60,6 +60,7 @@ const defaults = {
 
   // Wheter to download and optimize remote images loaded from a url
   optimizeRemote: true,
+  fetchHead: true,
 
   //
   // Declared image folder processing
@@ -87,13 +88,13 @@ const defaults = {
 
   // Add image sizes to this array to create different asset sizes for any image
   // that is processed using `processFolders`
-  processFoldersSizes: false
+  processFoldersSizes: false,
 };
 
 /**
  * @type {typeof defaults}
  */
-let options = JSON.parse(JSON.stringify(defaults))
+let options = JSON.parse(JSON.stringify(defaults));
 
 async function downloadImage(url, folder = ".") {
   const hash = crypto.createHash("sha1").update(url).digest("hex");
@@ -102,22 +103,25 @@ async function downloadImage(url, folder = ".") {
     return existing;
   }
 
-  const { headers } = await axios.head(url);
+  if (options.fetchHead) {
+    const { headers } = await axios.head(url);
 
-  const [type, ext] = headers["content-type"].split("/");
-  if (type !== "image") return null;
+    const [type] = headers["content-type"].split("/");
+    if (type !== "image") return null;
+  }
 
-  const filename = `${hash}.${ext}`;
-  const saveTo = path.resolve(folder, filename);
-
-  if (fs.existsSync(saveTo)) return filename;
-
-  const writer = fs.createWriteStream(saveTo);
   const response = await axios({
     url,
     method: "GET",
     responseType: "stream",
   });
+
+  const [ext] = response.headers["content-type"].split("/");
+  const filename = `${hash}.${ext}`;
+  const saveTo = path.resolve(folder, filename);
+  if (fs.existsSync(saveTo)) return filename;
+  const writer = fs.createWriteStream(saveTo);
+
   response.data.pipe(writer);
 
   return new Promise((resolve, reject) => {
@@ -430,13 +434,17 @@ async function getImageData(pathname) {
   const height = Math.floor(meta.height * (width / meta.width));
 
   return new Promise((resolve, reject) => {
-    img.raw().ensureAlpha().resize(width, height).toBuffer((err, buffer, { width, height }) => {
-      if (err) {
-        return reject(err);
-      }
+    img
+      .raw()
+      .ensureAlpha()
+      .resize(width, height)
+      .toBuffer((err, buffer, { width, height }) => {
+        if (err) {
+          return reject(err);
+        }
 
-      return resolve({ data: new Uint8ClampedArray(buffer), width, height });
-    });
+        return resolve({ data: new Uint8ClampedArray(buffer), width, height });
+      });
   });
 }
 
@@ -482,7 +490,13 @@ async function replaceInComponent(edited, node) {
 
   if (options.placeholder === "blurhash") {
     const imgdata = await getImageData(paths.inPath);
-    const hash = blurhash.encode(imgdata.data, imgdata.width, imgdata.height, 4, 3);
+    const hash = blurhash.encode(
+      imgdata.data,
+      imgdata.width,
+      imgdata.height,
+      4,
+      3
+    );
 
     replaced = insert(
       replaced.content,
@@ -501,7 +515,7 @@ async function replaceInComponent(edited, node) {
       end + 2,
       replaced.offset
     );
-  };
+  }
 
   return replaced;
 }
@@ -548,7 +562,8 @@ async function replaceImages(content) {
   let ast;
   const imageNodes = [];
 
-  if (!content.includes("<img") && !content.includes(`<${options.tagName}`)) return content;
+  if (!content.includes("<img") && !content.includes(`<${options.tagName}`))
+    return content;
 
   try {
     ast = svelte.parse(content);
@@ -606,25 +621,25 @@ async function processImage(pathFromStatic) {
 function processFolder(folder) {
   // get images
   const files = fs.readdirSync(path.resolve(options.publicDir, folder));
-  const images = files.filter(file =>
+  const images = files.filter((file) =>
     options.processFoldersExtensions.includes(path.extname(file).substr(1))
   );
 
   // process
   const processingImages = images
-    .map(filename => path.join(folder, filename))
+    .map((filename) => path.join(folder, filename))
     .map(processImage);
 
   // get folders and optionally recurse
   let processingFolders = [];
 
   if (options.processFoldersRecursively) {
-    const folders = files.filter(fileOrFolder =>
+    const folders = files.filter((fileOrFolder) =>
       fs
         .lstatSync(path.resolve(options.publicDir, folder, fileOrFolder))
         .isDirectory()
     );
-    processingFolders = folders.map(nestedFolder =>
+    processingFolders = folders.map((nestedFolder) =>
       processFolder(path.join(folder, nestedFolder))
     );
   }
@@ -635,12 +650,11 @@ function processFolder(folder) {
 function processFolders() {
   if (options.processFolders.length === 0) return;
 
-  const inlineBelow = options.inlineBelow
-  options.inlineBelow = 0
+  const inlineBelow = options.inlineBelow;
+  options.inlineBelow = 0;
 
   const jobs = options.processFolders.map(processFolder);
-  return Promise.all(jobs)
-    .finally(() => (options.inlineBelow = inlineBelow));
+  return Promise.all(jobs).finally(() => (options.inlineBelow = inlineBelow));
 }
 
 let processFoldersRunIds = [];
@@ -650,7 +664,7 @@ let processFoldersRunIds = [];
 function getPreprocessor(opts = {}) {
   options = {
     ...JSON.parse(JSON.stringify(defaults)),
-    ...opts
+    ...opts,
   };
 
   async function processFoldersOnce() {
@@ -658,15 +672,15 @@ function getPreprocessor(opts = {}) {
       processFolders: foldersToProcess,
       processFoldersExtensions,
       processFoldersRecursively,
-      processFoldersSizes
-    } = options
+      processFoldersSizes,
+    } = options;
     const runId = JSON.stringify({
       processFolders: foldersToProcess,
       processFoldersExtensions,
       processFoldersRecursively,
-      processFoldersSizes
-    })
-    
+      processFoldersSizes,
+    });
+
     if (processFoldersRunIds.includes(runId)) return;
     processFoldersRunIds.push(runId);
 
@@ -677,9 +691,9 @@ function getPreprocessor(opts = {}) {
     markup: async ({ content }) => {
       await processFoldersOnce();
       return {
-        code: await replaceImages(content)
+        code: await replaceImages(content),
       };
-    }
+    },
   };
 }
 

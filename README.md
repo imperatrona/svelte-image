@@ -1,5 +1,11 @@
 # Svelte Image
 
+## Differences
+
+This fork has optons flag `fetchHead` which by default true and can be used to avoid fetcing head of remote urls. So it will not check if it's type image. It's main purpose to make requests to s3 bucket not return 403 error.
+
+## Description
+
 [Demo](https://svelte-image.matyunya.now.sh/)
 
 Svelte image is a preprocessor which automates image optimization using [sharp](https://github.com/lovell/sharp).
@@ -25,10 +31,9 @@ In your `rollup.config.js` add `image` to preprocess section:
 ```js
 import image from "svelte-image";
 
-
 svelte({
   preprocess: image(),
-})
+});
 ```
 
 And have fun!
@@ -38,7 +43,7 @@ And have fun!
   import Image from "svelte-image";
 </script>
 
-<Image src="fuji.jpg" />
+<image src="fuji.jpg" />
 ```
 
 Will generate
@@ -46,12 +51,13 @@ Will generate
 ```html
 <img
   src="data:image/png;base64,/9j/2wBDAAYEBQYFBAYG...BwYIChAKCgkJChQODwwQF"
-  alt="fuji">
+  alt="fuji"
+/>
 <img
   alt="fuji"
   sizes="(max-width: 1000px) 100vw, 1000px"
   srcset="g/400-fuji.jpg 375w, g/800-fuji.jpg 768w, g/1200-fuji.jpg 1024w"
->
+/>
 ```
 
 ## Image path
@@ -129,7 +135,7 @@ const defaults = {
   webpOptions: {
     quality: 75,
     lossless: false,
-    force: true
+    force: true,
   },
 
   webp: true,
@@ -138,7 +144,7 @@ const defaults = {
   trace: {
     background: "#fff",
     color: "#002fa7",
-    threshold: 120
+    threshold: 120,
   },
 
   // Whether to download and optimize remote images loaded from a url
@@ -170,7 +176,7 @@ const defaults = {
 
   // Add image sizes to this array to create different asset sizes for any image
   // that is processed using `processFolders`
-  processFoldersSizes: false
+  processFoldersSizes: false,
 };
 ```
 
@@ -178,25 +184,25 @@ const defaults = {
 
 Standard image tag props.
 
-- `class` *default: ""*
-- `alt` *default: ""*
-- `width` *default: ""*
-- `height` *default: ""*
+- `class` _default: ""_
+- `alt` _default: ""_
+- `width` _default: ""_
+- `height` _default: ""_
 
-- `c` *default: ""* Class string // deprecated in favor of `class`
-- `wrapperClass` *default: ""* Classes passed to Waypoint wrapper
-- `placeholderClass` *default: ""* Classes passed to placeholder
-- `threshold` *default: 1.0* "A threshold of 1.0 means that when 100% of the target is visible within the element specified by the root option, the callback is invoked."
-- `lazy` *default: true* Disables Waypoint.
+- `c` _default: ""_ Class string // deprecated in favor of `class`
+- `wrapperClass` _default: ""_ Classes passed to Waypoint wrapper
+- `placeholderClass` _default: ""_ Classes passed to placeholder
+- `threshold` _default: 1.0_ "A threshold of 1.0 means that when 100% of the target is visible within the element specified by the root option, the callback is invoked."
+- `lazy` _default: true_ Disables Waypoint.
 
 Following props are filled by preprocessor:
 
-- `src` *default: ""*
-- `srcset` *default: ""*
-- `srcsetWebp` *default: ""*
-- `ratio` *default: "100%"*
-- `blur` *default: false*
-- `sizes` *default: "(max-width: 1000px) 100vw, 1000px"*
+- `src` _default: ""_
+- `srcset` _default: ""_
+- `srcsetWebp` _default: ""_
+- `ratio` _default: "100%"_
+- `blur` _default: false_
+- `sizes` _default: "(max-width: 1000px) 100vw, 1000px"_
 
 ## Features
 
@@ -238,13 +244,12 @@ For example, if your config looks something like this
 ```js
 import image from "svelte-image";
 
-
 svelte({
   preprocess: image({
     sizes: [200, 400],
-    processFolders: ['people/images']
+    processFolders: ["people/images"],
   }),
-})
+});
 ```
 
 Then, assuming you have the `people/images` folder populated inside your
