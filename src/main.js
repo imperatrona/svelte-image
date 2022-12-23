@@ -116,7 +116,7 @@ async function downloadImage(url, folder = ".") {
     responseType: "stream",
   });
 
-  const [ext] = response.headers["content-type"].split("/");
+  const [_, ext] = response.headers["content-type"].split("/");
   const filename = `${hash}.${ext}`;
   const saveTo = path.resolve(folder, filename);
   if (fs.existsSync(saveTo)) return filename;
