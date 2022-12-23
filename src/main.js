@@ -105,9 +105,7 @@ async function downloadImage(url, folder = ".") {
 
   if (options.fetchHead) {
     const { headers } = await axios.head(url);
-
-    const [type] = headers["content-type"].split("/");
-    if (type !== "image") return null;
+    if (headers["content-type"].split("/")[0] !== "image") return null;
   }
 
   const response = await axios({
@@ -116,7 +114,8 @@ async function downloadImage(url, folder = ".") {
     responseType: "stream",
   });
 
-  const [_, ext] = response.headers["content-type"].split("/");
+  const [type, ext] = response.headers["content-type"].split("/");
+  if (type !== "image") return null;
   const filename = `${hash}.${ext}`;
   const saveTo = path.resolve(folder, filename);
   if (fs.existsSync(saveTo)) return filename;
